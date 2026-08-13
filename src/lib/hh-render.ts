@@ -191,11 +191,7 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   italic(ctx, () => ctx.fillText(nameText, W / 2, y), W / 2, y);
 
   // --- Role
-  y = 1092;
-  ctx.fillStyle = PINK;
-  ctx.font = "700 26px 'JetBrains Mono', monospace";
-  ctx.fillText("YOUR STACK / ROLE", W / 2, y);
-  y = 1139;
+  y = 1130;
   ctx.fillStyle = CREAM;
   const roleText = (input.role || "Builder").toUpperCase();
   const roleSize = fitText(
@@ -209,33 +205,7 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   ctx.font = `700 ${roleSize}px 'Archivo Black', sans-serif`;
   ctx.fillText(roleText, W / 2, y);
 
-  // --- Stack chips
-  y = 1166;
-  const chips = input.stack.slice(0, 6);
-  if (chips.length) {
-    ctx.font = "700 24px 'JetBrains Mono', monospace";
-    const padX = 20;
-    const widths = chips.map((c) => ctx.measureText(c.toUpperCase()).width + padX * 2);
-    const gap = 14;
-    const total = widths.reduce((a, b) => a + b, 0) + gap * (chips.length - 1);
-    let cx = (W - total) / 2;
-    chips.forEach((c, i) => {
-      const cw = widths[i] ?? 100;
-      ctx.strokeStyle = YELLOW;
-      ctx.lineWidth = 2;
-      roundRect(ctx, cx, y, cw, 46, 23);
-      ctx.stroke();
-      ctx.fillStyle = YELLOW;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(c.toUpperCase(), cx + cw / 2, y + 24);
-      ctx.textBaseline = "alphabetic";
-      cx += cw + gap;
-    });
-    y += 46;
-  }
-
-  // --- Builder title pink band (overlaps beach)
+  // --- Builder title pink band
   const bandY = 1266;
   ctx.save();
   ctx.translate(W / 2, bandY + 84);
