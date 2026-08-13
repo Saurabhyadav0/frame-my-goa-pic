@@ -26,8 +26,6 @@ export const Route = createFileRoute("/")({
   }),
 });
 
-const STACKS = ["React", "Node.js", "Python", "SQL", "AWS", "Go", "Rust", "Solidity", "Figma", "AI"];
-
 async function fileToImage(file: File) {
   let blob: Blob = file;
   const isHeic = /heic|heif/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
@@ -45,14 +43,13 @@ function Index() {
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
-  const [stack, setStack] = useState<string[]>(["React", "Node.js"]);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const blobRef = useRef<Blob | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const builderTitle = titleFor(`${name}|${role}|${stack.join(",")}`);
+  const builderTitle = titleFor(`${name}|${role}`);
 
   useEffect(() => {
     preloadBrandArt().catch(() => {});
@@ -65,7 +62,7 @@ function Index() {
       await (document as any).fonts?.ready;
       const canvas =
         format === "card"
-          ? await renderCard({ photo, name, role, stack, builderTitle })
+          ? await renderCard({ photo, name, role, builderTitle })
           : await renderPfp(photo);
       const blob = await canvasToBlob(canvas);
       blobRef.current = blob;
@@ -78,7 +75,7 @@ function Index() {
     } finally {
       setBusy(false);
     }
-  }, [photo, name, role, stack, builderTitle, format]);
+  }, [photo, name, role, builderTitle, format]);
 
   useEffect(() => {
     const t = setTimeout(generate, 120);
@@ -200,30 +197,6 @@ function Index() {
                     placeholder="Full Stack Developer"
                     className="w-full rounded-xl border-2 border-primary/40 bg-card px-4 py-3 outline-none focus:border-accent"
                   />
-                </Field>
-                <Field label="TECH">
-                  <div className="flex flex-wrap gap-2">
-                    {STACKS.map((s) => {
-                      const on = stack.includes(s);
-                      return (
-                        <button
-                          key={s}
-                          onClick={() =>
-                            setStack((prev) =>
-                              on ? prev.filter((x) => x !== s) : [...prev, s].slice(0, 5),
-                            )
-                          }
-                          className={`rounded-full border-2 px-3 py-1.5 font-mono text-xs tracking-wide transition ${
-                            on
-                              ? "border-accent bg-accent text-accent-foreground"
-                              : "border-primary/40 text-foreground/70"
-                          }`}
-                        >
-                          {s}
-                        </button>
-                      );
-                    })}
-                  </div>
                 </Field>
                 <p className="font-mono text-xs tracking-widest text-secondary">
                   BUILDER TITLE → {builderTitle.toUpperCase()}
