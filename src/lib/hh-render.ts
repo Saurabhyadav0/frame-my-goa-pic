@@ -1,5 +1,5 @@
 import logoAsset from "@/assets/hh-logo.png.asset.json";
-import beachAsset from "@/assets/hh-beach.png.asset.json";
+import bgAsset from "@/assets/hh-bg.png.asset.json";
 
 const GREEN = "#0d5c34";
 const YELLOW = "#f5d919";
@@ -25,7 +25,7 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 export const preloadBrandArt = () =>
-  Promise.all([loadImage(logoAsset.url), loadImage(beachAsset.url)]);
+  Promise.all([loadImage(logoAsset.url), loadImage(bgAsset.url)]);
 
 function drawCover(
   ctx: CanvasRenderingContext2D,
@@ -101,12 +101,11 @@ export type CardInput = {
   photo: HTMLImageElement;
   name: string;
   role: string;
-  stack: string[];
   builderTitle: string;
 };
 
 export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
-  const [logo, beach] = await preloadBrandArt();
+  const [logo, bg] = await preloadBrandArt();
   const W = 1080;
   const H = 1620;
   const canvas = document.createElement("canvas");
@@ -117,6 +116,13 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   ctx.fillStyle = GREEN;
   ctx.fillRect(0, 0, W, H);
 
+  // Full-bleed beach background
+  drawCover(ctx, bg, 0, 0, W, H, 0.5);
+
+  // Green scrim so text stays legible
+  ctx.fillStyle = "rgba(6,42,24,0.62)";
+  ctx.fillRect(0, 0, W, H);
+
   // Header wordmark banner
   const headerH = Math.round((W / logo.width) * logo.height);
   ctx.drawImage(logo, 0, 0, W, headerH);
@@ -124,15 +130,6 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   // thin yellow rule
   ctx.fillStyle = YELLOW;
   ctx.fillRect(56, headerH + 10, W - 112, 4);
-
-  // Beach illustration band (bottom)
-  const beachH = 420;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, H - beachH, W, beachH);
-  ctx.clip();
-  drawCover(ctx, beach, 0, H - beachH, W, beachH, 0.72);
-  ctx.restore();
 
   // --- Pink "BUILDER ID CARD" tag
   const tagY = 400;
@@ -194,11 +191,7 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   italic(ctx, () => ctx.fillText(nameText, W / 2, y), W / 2, y);
 
   // --- Role
-  y = 1092;
-  ctx.fillStyle = PINK;
-  ctx.font = "700 26px 'JetBrains Mono', monospace";
-  ctx.fillText("YOUR STACK / ROLE", W / 2, y);
-  y = 1139;
+  y = 1130;
   ctx.fillStyle = CREAM;
   const roleText = (input.role || "Builder").toUpperCase();
   const roleSize = fitText(
@@ -212,33 +205,7 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   ctx.font = `700 ${roleSize}px 'Archivo Black', sans-serif`;
   ctx.fillText(roleText, W / 2, y);
 
-  // --- Stack chips
-  y = 1166;
-  const chips = input.stack.slice(0, 6);
-  if (chips.length) {
-    ctx.font = "700 24px 'JetBrains Mono', monospace";
-    const padX = 20;
-    const widths = chips.map((c) => ctx.measureText(c.toUpperCase()).width + padX * 2);
-    const gap = 14;
-    const total = widths.reduce((a, b) => a + b, 0) + gap * (chips.length - 1);
-    let cx = (W - total) / 2;
-    chips.forEach((c, i) => {
-      const cw = widths[i] ?? 100;
-      ctx.strokeStyle = YELLOW;
-      ctx.lineWidth = 2;
-      roundRect(ctx, cx, y, cw, 46, 23);
-      ctx.stroke();
-      ctx.fillStyle = YELLOW;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "middle";
-      ctx.fillText(c.toUpperCase(), cx + cw / 2, y + 24);
-      ctx.textBaseline = "alphabetic";
-      cx += cw + gap;
-    });
-    y += 46;
-  }
-
-  // --- Builder title pink band (overlaps beach)
+  // --- Builder title pink band
   const bandY = 1266;
   ctx.save();
   ctx.translate(W / 2, bandY + 84);
