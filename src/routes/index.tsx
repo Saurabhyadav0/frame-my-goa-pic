@@ -8,6 +8,8 @@ import {
   renderPfp,
   type Crop,
   DEFAULT_CROP,
+  type PfpVariant,
+  PFP_VARIANTS,
 } from "@/lib/hh-render";
 import { CAPTION, titleFor } from "@/lib/hh-brand";
 import { PhotoCropper } from "@/components/PhotoCropper";
@@ -38,6 +40,13 @@ export const Route = createFileRoute("/")({
   }),
 });
 
+const THEME_SWATCH: Record<PfpVariant, string> = {
+  sunset: "border-yellow-400 bg-gradient-to-br from-green-700 to-orange-400",
+  olive: "border-[#c9a227] bg-gradient-to-br from-[#f7f3e6] to-[#7a8c4a]",
+  sunburst: "border-pink-500 bg-gradient-to-br from-yellow-300 to-green-800",
+  mono: "border-[#f7f3e6] bg-[#04150d]",
+};
+
 const MARQUEE_ITEMS = [
   "FRAME IN GOA",
   "BUILD. CODE. REPEAT.",
@@ -60,6 +69,7 @@ async function fileToImage(file: File) {
 
 function Index() {
   const [format, setFormat] = useState<"card" | "pfp">("card");
+  const [pfpVariant, setPfpVariant] = useState<PfpVariant>("sunset");
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
   const [crop, setCrop] = useState<Crop>(DEFAULT_CROP);
   const [name, setName] = useState("");
@@ -87,7 +97,7 @@ function Index() {
       const canvas =
         format === "card"
           ? await renderCard({ photo, name, role, builderTitle, crop })
-          : await renderPfp(photo, crop);
+          : await renderPfp(photo, crop, pfpVariant);
       const blob = await canvasToBlob(canvas);
       blobRef.current = blob;
       setPreview((old) => {
@@ -99,7 +109,7 @@ function Index() {
     } finally {
       setBusy(false);
     }
-  }, [photo, name, role, builderTitle, format, crop]);
+  }, [photo, name, role, builderTitle, format, crop, pfpVariant]);
 
   useEffect(() => {
     const t = setTimeout(generate, 90);
@@ -308,6 +318,32 @@ function Index() {
                       🎲 SHUFFLE
                     </button>
                   </div>
+                </div>
+              </StepCard>
+            )}
+
+            {format === "pfp" && (
+              <StepCard n="02" title="PICK A THEME">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {PFP_VARIANTS.map((v) => (
+                    <button
+                      key={v.id}
+                      onClick={() => setPfpVariant(v.id)}
+                      className={`flex flex-col items-center gap-2 rounded-xl border-2 p-3 transition ${
+                        pfpVariant === v.id
+                          ? "border-accent bg-accent/10"
+                          : "border-primary/30 hover:border-primary/60"
+                      }`}
+                    >
+                      <span
+                        aria-hidden
+                        className={`h-10 w-10 rounded-full border-2 ${THEME_SWATCH[v.id]}`}
+                      />
+                      <span className="font-mono text-[10px] tracking-widest text-primary">
+                        {v.label.toUpperCase()}
+                      </span>
+                    </button>
+                  ))}
                 </div>
               </StepCard>
             )}

@@ -375,9 +375,68 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   return canvas;
 }
 
+export type PfpVariant = "sunset" | "olive" | "sunburst" | "mono";
+
+export const PFP_VARIANTS: { id: PfpVariant; label: string }[] = [
+  { id: "sunset", label: "Sunset" },
+  { id: "olive", label: "Olive Wreath" },
+  { id: "sunburst", label: "Sunburst" },
+  { id: "mono", label: "Mono" },
+];
+
+// Laurel/olive wreath: two mirrored fans of leaf blades arcing from the
+// bottom of the circle up toward the sides, like a classic badge emblem.
+function drawLaurelWreath(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string) {
+  const leaves = 10;
+  for (const side of [1, -1] as const) {
+    for (let i = 0; i < leaves; i++) {
+      const t = i / (leaves - 1);
+      const angleDeg = 92 - side * t * 150;
+      const angle = (angleDeg * Math.PI) / 180;
+      const x = cx + Math.cos(angle) * r;
+      const y = cy + Math.sin(angle) * r;
+      const scale = 1 - t * 0.35;
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(angle + side * 1.0);
+      ctx.fillStyle = color;
+      ctx.beginPath();
+      ctx.ellipse(0, 0, 30 * scale, 12 * scale, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+}
+
+// Bold radiating sunburst rays, alternating two tones, ringing the circle.
+function drawSunburstRing(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  rInner: number,
+  rOuter: number,
+  colorA: string,
+  colorB: string,
+) {
+  const rays = 28;
+  for (let i = 0; i < rays; i++) {
+    const a0 = (i / rays) * Math.PI * 2;
+    const a1 = ((i + 0.62) / rays) * Math.PI * 2;
+    ctx.fillStyle = i % 2 === 0 ? colorA : colorB;
+    ctx.beginPath();
+    ctx.moveTo(cx + Math.cos(a0) * rInner, cy + Math.sin(a0) * rInner);
+    ctx.lineTo(cx + Math.cos(a0) * rOuter, cy + Math.sin(a0) * rOuter);
+    ctx.lineTo(cx + Math.cos(a1) * rOuter, cy + Math.sin(a1) * rOuter);
+    ctx.lineTo(cx + Math.cos(a1) * rInner, cy + Math.sin(a1) * rInner);
+    ctx.closePath();
+    ctx.fill();
+  }
+}
+
 export async function renderPfp(
   photo: HTMLImageElement,
   crop: Crop = DEFAULT_CROP,
+  variant: PfpVariant = "sunset",
 ): Promise<HTMLCanvasElement> {
   const [, beach] = await preloadBrandArt();
   const S = 1024;
@@ -385,66 +444,158 @@ export async function renderPfp(
   canvas.width = S;
   canvas.height = S;
   const ctx = canvas.getContext("2d")!;
+  const cx = S / 2;
+  const cy = S / 2;
+  const photoR = S / 2 - 44;
 
-  drawBeachBackdrop(ctx, beach, S, S);
+  // --- background, per theme
+  if (variant === "sunset") {
+    drawBeachBackdrop(ctx, beach, S, S);
+  } else if (variant === "olive") {
+    const g = ctx.createLinearGradient(0, 0, 0, S);
+    g.addColorStop(0, "#f7f3e6");
+    g.addColorStop(1, "#eadfc2");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, S, S);
+  } else if (variant === "sunburst") {
+    ctx.fillStyle = GREEN_DEEP;
+    ctx.fillRect(0, 0, S, S);
+    drawSunburstRing(ctx, cx, cy, photoR - 4, S * 0.72, YELLOW, PINK);
+  } else {
+    ctx.fillStyle = GREEN_DEEPER;
+    ctx.fillRect(0, 0, S, S);
+  }
+
+  // --- photo, clipped to the circle
   ctx.save();
   ctx.beginPath();
-  ctx.arc(S / 2, S / 2, S / 2 - 44, 0, Math.PI * 2);
+  ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
   ctx.clip();
   drawCoverCropped(ctx, photo, 44, 44, S - 88, S - 88, crop);
 
-  // vignette so bottom lockup reads
-  const g = ctx.createLinearGradient(0, S * 0.5, 0, S);
-  g.addColorStop(0, "rgba(6,42,24,0)");
-  g.addColorStop(1, "rgba(6,42,24,0.94)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, S, S);
-
-  // palm silhouettes tucked into the vignette, positioned to stay inside the
-  // circular clip (near the edges the clip cuts off well above the canvas base)
-  drawPalmTree(ctx, S * 0.22, S * 0.88, 0.4, 1, "rgba(13,92,52,0.85)");
-  drawPalmTree(ctx, S * 0.78, S * 0.86, 0.36, -1, "rgba(13,92,52,0.85)");
+  if (variant === "sunset") {
+    const g = ctx.createLinearGradient(0, S * 0.5, 0, S);
+    g.addColorStop(0, "rgba(6,42,24,0)");
+    g.addColorStop(1, "rgba(6,42,24,0.94)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, S, S);
+    drawPalmTree(ctx, S * 0.22, S * 0.88, 0.4, 1, "rgba(13,92,52,0.85)");
+    drawPalmTree(ctx, S * 0.78, S * 0.86, 0.36, -1, "rgba(13,92,52,0.85)");
+  } else if (variant === "mono" || variant === "sunburst") {
+    const g = ctx.createLinearGradient(0, S * 0.55, 0, S);
+    g.addColorStop(0, "rgba(4,21,13,0)");
+    g.addColorStop(1, "rgba(4,21,13,0.92)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, S, S);
+  }
   ctx.restore();
 
-  // rings
-  ctx.lineWidth = 46;
-  ctx.strokeStyle = GREEN;
-  ctx.beginPath();
-  ctx.arc(S / 2, S / 2, S / 2 - 21, 0, Math.PI * 2);
-  ctx.stroke();
-  ctx.lineWidth = 8;
-  ctx.strokeStyle = YELLOW;
-  ctx.beginPath();
-  ctx.arc(S / 2, S / 2, S / 2 - 48, 0, Math.PI * 2);
-  ctx.stroke();
+  // --- ring + decoration, per theme
+  if (variant === "sunset") {
+    ctx.lineWidth = 46;
+    ctx.strokeStyle = GREEN;
+    ctx.beginPath();
+    ctx.arc(cx, cy, S / 2 - 21, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 8;
+    ctx.strokeStyle = YELLOW;
+    ctx.beginPath();
+    ctx.arc(cx, cy, photoR - 4, 0, Math.PI * 2);
+    ctx.stroke();
 
-  // wordmark, clipped to the circle
-  ctx.save();
-  ctx.beginPath();
-  ctx.arc(S / 2, S / 2, S / 2 - 44, 0, Math.PI * 2);
-  ctx.clip();
-  ctx.textAlign = "center";
-  ctx.fillStyle = CREAM;
-  ctx.font = "700 54px 'Archivo Black', Impact, sans-serif";
-  ctx.fillText("HACKER HOUSE", S / 2, S - 224);
-  ctx.fillStyle = YELLOW;
-  ctx.font = "700 30px 'Archivo Black', Impact, sans-serif";
-  ctx.fillText("GOA 2026", S / 2, S - 182);
-  ctx.restore();
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.textAlign = "center";
+    ctx.fillStyle = CREAM;
+    ctx.font = "700 54px 'Archivo Black', Impact, sans-serif";
+    ctx.fillText("HACKER HOUSE", cx, S - 224);
+    ctx.fillStyle = YELLOW;
+    ctx.font = "700 30px 'Archivo Black', Impact, sans-serif";
+    ctx.fillText("GOA 2026", cx, S - 182);
+    ctx.restore();
 
-  // pink ribbon
-  ctx.save();
-  ctx.translate(S / 2, S - 128);
-  ctx.rotate(-0.03);
-  ctx.fillStyle = PINK;
-  roundRect(ctx, -240, -34, 480, 68, 34);
-  ctx.fill();
-  ctx.fillStyle = YELLOW;
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = "700 32px 'JetBrains Mono', monospace";
-  ctx.fillText("GOA · 28–31 OCT 2026", 0, 2);
-  ctx.restore();
+    ctx.save();
+    ctx.translate(cx, S - 128);
+    ctx.rotate(-0.03);
+    ctx.fillStyle = PINK;
+    roundRect(ctx, -240, -34, 480, 68, 34);
+    ctx.fill();
+    ctx.fillStyle = YELLOW;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "700 32px 'JetBrains Mono', monospace";
+    ctx.fillText("GOA · 28–31 OCT 2026", 0, 2);
+    ctx.restore();
+  } else if (variant === "olive") {
+    drawLaurelWreath(ctx, cx, cy, photoR + 26, "#7a8c4a");
+    drawLaurelWreath(ctx, cx, cy, photoR + 14, "#5c6e35");
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = "#c9a227";
+    ctx.beginPath();
+    ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, cy - photoR - 4);
+    ctx.fillStyle = PINK;
+    roundRect(ctx, -84, -26, 168, 52, 26);
+    ctx.fill();
+    ctx.strokeStyle = CREAM;
+    ctx.lineWidth = 4;
+    roundRect(ctx, -84, -26, 168, 52, 26);
+    ctx.stroke();
+    ctx.fillStyle = CREAM;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "700 26px 'Archivo Black', Impact, sans-serif";
+    ctx.fillText("GOA", 0, 3);
+    ctx.restore();
+
+    ctx.fillStyle = "#5c4a1f";
+    ctx.textAlign = "center";
+    ctx.font = "700 22px 'JetBrains Mono', monospace";
+    ctx.fillText("HACKER HOUSE · 28–31 OCT 2026", cx, cy + photoR + 62);
+  } else if (variant === "sunburst") {
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = CREAM;
+    ctx.beginPath();
+    ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.save();
+    ctx.translate(cx, S - 118);
+    ctx.rotate(0.03);
+    ctx.fillStyle = PINK;
+    roundRect(ctx, -230, -32, 460, 64, 32);
+    ctx.fill();
+    ctx.fillStyle = YELLOW;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.font = "700 28px 'Archivo Black', Impact, sans-serif";
+    ctx.fillText("HACKER HOUSE GOA", 0, 2);
+    ctx.restore();
+  } else {
+    ctx.lineWidth = 5;
+    ctx.strokeStyle = CREAM;
+    ctx.beginPath();
+    ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.lineWidth = 1.5;
+    ctx.strokeStyle = "rgba(247,243,230,0.5)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, photoR + 14, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = CREAM;
+    ctx.font = "700 30px 'JetBrains Mono', monospace";
+    ctx.fillText("HACKER HOUSE", cx, S - 172);
+    ctx.fillStyle = YELLOW;
+    ctx.font = "700 22px 'JetBrains Mono', monospace";
+    ctx.fillText("GOA · 28–31 OCT 2026", cx, S - 132);
+  }
 
   grain(ctx, S, S, 0.04);
   return canvas;
