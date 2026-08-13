@@ -425,29 +425,37 @@ export const PFP_VARIANTS: { id: PfpVariant; label: string }[] = [
 
 // Laurel/olive wreath: two mirrored fans of leaf blades arcing from the
 // bottom of the circle up toward the sides, like a classic badge emblem.
-function drawLaurelWreath(ctx: CanvasRenderingContext2D, cx: number, cy: number, r: number, color: string) {
-  const leaves = 10;
+function drawLaurelWreath(
+  ctx: CanvasRenderingContext2D,
+  cx: number,
+  cy: number,
+  r: number,
+  color: string,
+  leafScale = 1,
+) {
+  const leaves = 8;
   for (const side of [1, -1] as const) {
     for (let i = 0; i < leaves; i++) {
       const t = i / (leaves - 1);
-      const angleDeg = 92 - side * t * 150;
+      const angleDeg = 88 - side * t * 145;
       const angle = (angleDeg * Math.PI) / 180;
       const x = cx + Math.cos(angle) * r;
       const y = cy + Math.sin(angle) * r;
-      const scale = 1 - t * 0.35;
+      const scale = (1 - t * 0.3) * leafScale;
       ctx.save();
       ctx.translate(x, y);
       ctx.rotate(angle + side * 1.0);
       ctx.fillStyle = color;
       ctx.beginPath();
-      ctx.ellipse(0, 0, 30 * scale, 12 * scale, 0, 0, Math.PI * 2);
+      ctx.ellipse(0, 0, 26 * scale, 12 * scale, 0, 0, Math.PI * 2);
       ctx.fill();
       ctx.restore();
     }
   }
 }
 
-// Bold radiating sunburst rays, alternating two tones, ringing the circle.
+// Bold radiating sunburst rays, alternating two tones and long/short spikes
+// for a dynamic comic-pop-art starburst instead of a uniform pinwheel.
 function drawSunburstRing(
   ctx: CanvasRenderingContext2D,
   cx: number,
@@ -457,15 +465,16 @@ function drawSunburstRing(
   colorA: string,
   colorB: string,
 ) {
-  const rays = 28;
+  const rays = 24;
   for (let i = 0; i < rays; i++) {
     const a0 = (i / rays) * Math.PI * 2;
-    const a1 = ((i + 0.62) / rays) * Math.PI * 2;
+    const a1 = ((i + 0.72) / rays) * Math.PI * 2;
+    const spikeOuter = i % 2 === 0 ? rOuter : rOuter * 0.76;
     ctx.fillStyle = i % 2 === 0 ? colorA : colorB;
     ctx.beginPath();
     ctx.moveTo(cx + Math.cos(a0) * rInner, cy + Math.sin(a0) * rInner);
-    ctx.lineTo(cx + Math.cos(a0) * rOuter, cy + Math.sin(a0) * rOuter);
-    ctx.lineTo(cx + Math.cos(a1) * rOuter, cy + Math.sin(a1) * rOuter);
+    ctx.lineTo(cx + Math.cos(a0) * spikeOuter, cy + Math.sin(a0) * spikeOuter);
+    ctx.lineTo(cx + Math.cos(a1) * spikeOuter, cy + Math.sin(a1) * spikeOuter);
     ctx.lineTo(cx + Math.cos(a1) * rInner, cy + Math.sin(a1) * rInner);
     ctx.closePath();
     ctx.fill();
@@ -532,6 +541,12 @@ export async function renderPfp(
     g.addColorStop(1, "rgba(4,21,13,0.92)");
     ctx.fillStyle = g;
     ctx.fillRect(0, 0, S, S);
+  } else if (variant === "olive") {
+    const g = ctx.createLinearGradient(0, S * 0.58, 0, S);
+    g.addColorStop(0, "rgba(35,28,10,0)");
+    g.addColorStop(1, "rgba(35,28,10,0.6)");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, S, S);
   }
   ctx.restore();
 
@@ -568,8 +583,9 @@ export async function renderPfp(
     ctx.fillText("GOA · 28–31 OCT 2026", 0, 2);
     ctx.restore();
   } else if (variant === "olive") {
-    drawLaurelWreath(ctx, cx, cy, photoR + 26, "#7a8c4a");
-    drawLaurelWreath(ctx, cx, cy, photoR + 14, "#5c6e35");
+    // big, full wreath — outer layer noticeably larger than the inner layer
+    drawLaurelWreath(ctx, cx, cy, photoR + 22, "#8a9c56", 1.6);
+    drawLaurelWreath(ctx, cx, cy, photoR + 6, "#5c6e35", 1.15);
     ctx.lineWidth = 6;
     ctx.strokeStyle = "#c9a227";
     ctx.beginPath();
@@ -577,7 +593,7 @@ export async function renderPfp(
     ctx.stroke();
 
     ctx.save();
-    ctx.translate(cx, cy - photoR - 4);
+    ctx.translate(cx, cy - photoR + 6);
     ctx.fillStyle = PINK;
     roundRect(ctx, -84, -26, 168, 52, 26);
     ctx.fill();
@@ -592,48 +608,97 @@ export async function renderPfp(
     ctx.fillText("GOA", 0, 3);
     ctx.restore();
 
-    ctx.fillStyle = "#5c4a1f";
+    // real wordmark lockup as a small seal, inside the circle above the wreath's base
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.save();
+    ctx.shadowColor = "rgba(0,0,0,0.35)";
+    ctx.shadowBlur = 18;
+    const wdh = drawWordmarkCrop(ctx, wordmark, cx, S - 200, 380);
+    ctx.restore();
+    ctx.fillStyle = "#e8c86a";
     ctx.textAlign = "center";
-    ctx.font = "700 22px 'JetBrains Mono', monospace";
-    ctx.fillText("HACKER HOUSE · 28–31 OCT 2026", cx, cy + photoR + 62);
+    ctx.font = "700 18px 'JetBrains Mono', monospace";
+    ctx.fillText("28–31 OCT 2026", cx, S - 200 + wdh + 30);
+    ctx.restore();
   } else if (variant === "sunburst") {
-    ctx.lineWidth = 10;
+    ctx.lineWidth = 12;
     ctx.strokeStyle = CREAM;
     ctx.beginPath();
     ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
     ctx.stroke();
+    ctx.lineWidth = 4;
+    ctx.strokeStyle = GREEN_DEEPER;
+    ctx.beginPath();
+    ctx.arc(cx, cy, photoR + 9, 0, Math.PI * 2);
+    ctx.stroke();
 
     ctx.save();
-    ctx.translate(cx, S - 118);
+    ctx.translate(cx, S - 132);
     ctx.rotate(0.03);
+    ctx.shadowColor = "rgba(0,0,0,0.3)";
+    ctx.shadowBlur = 16;
     ctx.fillStyle = PINK;
-    roundRect(ctx, -230, -32, 460, 64, 32);
+    roundRect(ctx, -240, -76, 480, 152, 30);
     ctx.fill();
+    ctx.shadowColor = "transparent";
+    ctx.strokeStyle = CREAM;
+    ctx.lineWidth = 5;
+    roundRect(ctx, -240, -76, 480, 152, 30);
+    ctx.stroke();
+    ctx.save();
+    roundRect(ctx, -204, -58, 408, 82, 14);
+    ctx.clip();
+    ctx.filter = "brightness(1.08) saturate(1.15)";
+    drawWordmarkCrop(ctx, wordmark, 0, -58, 400);
+    ctx.filter = "none";
+    ctx.restore();
     ctx.fillStyle = YELLOW;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.font = "700 28px 'Archivo Black', Impact, sans-serif";
-    ctx.fillText("HACKER HOUSE GOA", 0, 2);
+    ctx.font = "700 24px 'JetBrains Mono', monospace";
+    ctx.fillText("GOA · 28–31 OCT 2026", 0, 46);
     ctx.restore();
   } else {
+    // mono: thin concentric rings for a premium "vinyl/medallion" texture
     ctx.lineWidth = 5;
     ctx.strokeStyle = CREAM;
     ctx.beginPath();
     ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
     ctx.stroke();
-    ctx.lineWidth = 1.5;
-    ctx.strokeStyle = "rgba(247,243,230,0.5)";
+    for (const [dr, a] of [
+      [14, 0.5],
+      [24, 0.32],
+      [34, 0.18],
+    ] as const) {
+      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = `rgba(247,243,230,${a})`;
+      ctx.beginPath();
+      ctx.arc(cx, cy, photoR + dr, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "#c9a227";
     ctx.beginPath();
-    ctx.arc(cx, cy, photoR + 14, 0, Math.PI * 2);
+    ctx.arc(cx, cy, photoR - 10, 0, Math.PI * 2);
     ctx.stroke();
 
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
+    ctx.clip();
+    ctx.filter = "grayscale(1) brightness(1.5) contrast(0.9)";
+    const monoWdY = S - 210;
+    const monoWdh = drawWordmarkCrop(ctx, wordmark, cx, monoWdY, 360);
+    ctx.filter = "none";
+    ctx.restore();
+
     ctx.textAlign = "center";
-    ctx.fillStyle = CREAM;
-    ctx.font = "700 30px 'JetBrains Mono', monospace";
-    ctx.fillText("HACKER HOUSE", cx, S - 172);
     ctx.fillStyle = YELLOW;
-    ctx.font = "700 22px 'JetBrains Mono', monospace";
-    ctx.fillText("GOA · 28–31 OCT 2026", cx, S - 132);
+    ctx.font = "700 20px 'JetBrains Mono', monospace";
+    ctx.fillText("GOA · 28–31 OCT 2026", cx, monoWdY + monoWdh + 34);
   }
 
   grain(ctx, S, S, 0.04);
