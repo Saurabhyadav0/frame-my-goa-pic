@@ -1,5 +1,5 @@
 import logoAsset from "@/assets/hh-logo.png.asset.json";
-import beachAsset from "@/assets/hh-beach.png.asset.json";
+import bgAsset from "@/assets/hh-bg.png.asset.json";
 
 const GREEN = "#0d5c34";
 const YELLOW = "#f5d919";
@@ -25,7 +25,7 @@ export function loadImage(src: string): Promise<HTMLImageElement> {
 }
 
 export const preloadBrandArt = () =>
-  Promise.all([loadImage(logoAsset.url), loadImage(beachAsset.url)]);
+  Promise.all([loadImage(logoAsset.url), loadImage(bgAsset.url)]);
 
 function drawCover(
   ctx: CanvasRenderingContext2D,
