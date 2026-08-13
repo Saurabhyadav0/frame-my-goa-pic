@@ -234,8 +234,24 @@ function drawWordmarkCrop(
   return dh;
 }
 
+// Blank "add your photo" placeholder — shown in the frame before any photo is
+// uploaded, so the full card/PFP template is visible from the first paint.
+function drawPhotoPlaceholder(ctx: CanvasRenderingContext2D, x: number, y: number, w: number, h: number) {
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(x, y, w, h);
+  const cx = x + w / 2;
+  const cy = y + h / 2;
+  ctx.fillStyle = "rgba(6,42,24,0.14)";
+  ctx.beginPath();
+  ctx.arc(cx, cy - h * 0.09, w * 0.15, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + h * 0.26, w * 0.3, h * 0.18, 0, Math.PI, 0, true);
+  ctx.fill();
+}
+
 export type CardInput = {
-  photo: HTMLImageElement;
+  photo: HTMLImageElement | null;
   name: string;
   role: string;
   builderTitle: string;
@@ -292,7 +308,11 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   ctx.save();
   roundRect(ctx, px + 14, py + 14, pw - 28, ph - 28, 10);
   ctx.clip();
-  drawCoverCropped(ctx, input.photo, px + 14, py + 14, pw - 28, ph - 28, input.crop);
+  if (input.photo) {
+    drawCoverCropped(ctx, input.photo, px + 14, py + 14, pw - 28, ph - 28, input.crop);
+  } else {
+    drawPhotoPlaceholder(ctx, px + 14, py + 14, pw - 28, ph - 28);
+  }
   ctx.restore();
   ctx.restore();
 
@@ -453,7 +473,7 @@ function drawSunburstRing(
 }
 
 export async function renderPfp(
-  photo: HTMLImageElement,
+  photo: HTMLImageElement | null,
   crop: Crop = DEFAULT_CROP,
   variant: PfpVariant = "sunset",
 ): Promise<HTMLCanvasElement> {
@@ -490,9 +510,15 @@ export async function renderPfp(
   ctx.beginPath();
   ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
   ctx.clip();
-  drawCoverCropped(ctx, photo, 44, 44, S - 88, S - 88, crop);
+  if (photo) {
+    drawCoverCropped(ctx, photo, 44, 44, S - 88, S - 88, crop);
+  } else {
+    drawPhotoPlaceholder(ctx, 44, 44, S - 88, S - 88);
+  }
 
-  if (variant === "sunset") {
+  if (!photo) {
+    // keep the placeholder clean and legible — skip the darkening overlays below
+  } else if (variant === "sunset") {
     const g = ctx.createLinearGradient(0, S * 0.5, 0, S);
     g.addColorStop(0, "rgba(6,42,24,0)");
     g.addColorStop(1, "rgba(6,42,24,0.94)");

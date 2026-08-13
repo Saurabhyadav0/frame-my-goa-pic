@@ -90,7 +90,6 @@ function Index() {
   }, []);
 
   const generate = useCallback(async () => {
-    if (!photo) return;
     setBusy(true);
     try {
       await (document as any).fonts?.ready;
@@ -378,14 +377,14 @@ function Index() {
 
               <div className="mt-4 hidden flex-wrap gap-3 sm:flex">
                 <button
-                  disabled={!preview || busy}
+                  disabled={!preview || !photo || busy}
                   onClick={download}
                   className="flex-1 rounded-xl bg-primary px-5 py-4 font-display text-lg text-primary-foreground transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-40"
                 >
                   {busy ? "RENDERING…" : "DOWNLOAD PNG"}
                 </button>
                 <button
-                  disabled={!preview || busy}
+                  disabled={!preview || !photo || busy}
                   onClick={share}
                   className="flex-1 rounded-xl bg-secondary px-5 py-4 font-display text-lg text-secondary-foreground transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-40"
                 >
@@ -393,7 +392,7 @@ function Index() {
                 </button>
               </div>
               <button
-                disabled={!preview || busy}
+                disabled={!preview || !photo || busy}
                 onClick={copyCaption}
                 className="mt-3 hidden w-full rounded-xl border-2 border-primary/40 px-4 py-2 font-mono text-[11px] tracking-widest text-primary transition hover:border-accent disabled:opacity-40 sm:block"
               >
@@ -412,14 +411,14 @@ function Index() {
       <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-primary bg-card/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:hidden">
         <div className="flex gap-3">
           <button
-            disabled={!preview || busy}
+            disabled={!preview || !photo || busy}
             onClick={download}
             className="flex-1 rounded-xl bg-primary px-4 py-3 font-display text-base text-primary-foreground disabled:opacity-40"
           >
             {busy ? "…" : "DOWNLOAD"}
           </button>
           <button
-            disabled={!preview || busy}
+            disabled={!preview || !photo || busy}
             onClick={share}
             className="flex-1 rounded-xl bg-secondary px-4 py-3 font-display text-base text-secondary-foreground disabled:opacity-40"
           >
