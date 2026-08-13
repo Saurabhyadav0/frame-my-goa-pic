@@ -1,7 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { canvasToBlob, loadImage, preloadBrandArt, renderCard, renderPfp } from "@/lib/hh-render";
+import {
+  canvasToBlob,
+  loadImage,
+  preloadBrandArt,
+  renderCard,
+  renderPfp,
+  type Crop,
+  DEFAULT_CROP,
+} from "@/lib/hh-render";
 import { CAPTION, titleFor } from "@/lib/hh-brand";
+import { PhotoCropper } from "@/components/PhotoCropper";
+import { TropicalScenery } from "@/components/TropicalScenery";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -20,11 +30,21 @@ export const Route = createFileRoute("/")({
       },
       { property: "og:type", content: "website" },
       { property: "og:url", content: "/" },
+      { property: "og:image", content: "/og-frame-in-goa.png" },
       { name: "twitter:card", content: "summary_large_image" },
+      { name: "twitter:image", content: "/og-frame-in-goa.png" },
     ],
     links: [{ rel: "canonical", href: "/" }],
   }),
 });
+
+const MARQUEE_ITEMS = [
+  "FRAME IN GOA",
+  "BUILD. CODE. REPEAT.",
+  "#FrameInGoa",
+  "GOA · 28–31 OCT 2026",
+  "NO LOGIN · NO WAIT",
+];
 
 async function fileToImage(file: File) {
   let blob: Blob = file;
@@ -41,15 +61,19 @@ async function fileToImage(file: File) {
 function Index() {
   const [format, setFormat] = useState<"card" | "pfp">("card");
   const [photo, setPhoto] = useState<HTMLImageElement | null>(null);
+  const [crop, setCrop] = useState<Crop>(DEFAULT_CROP);
   const [name, setName] = useState("");
   const [role, setRole] = useState("");
+  const [titleNonce, setTitleNonce] = useState(0);
   const [preview, setPreview] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const blobRef = useRef<Blob | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const builderTitle = titleFor(`${name}|${role}`);
+  const builderTitle = titleFor(`${name}|${role}|${titleNonce}`);
 
   useEffect(() => {
     preloadBrandArt().catch(() => {});
@@ -62,8 +86,8 @@ function Index() {
       await (document as any).fonts?.ready;
       const canvas =
         format === "card"
-          ? await renderCard({ photo, name, role, builderTitle })
-          : await renderPfp(photo);
+          ? await renderCard({ photo, name, role, builderTitle, crop })
+          : await renderPfp(photo, crop);
       const blob = await canvasToBlob(canvas);
       blobRef.current = blob;
       setPreview((old) => {
@@ -75,24 +99,31 @@ function Index() {
     } finally {
       setBusy(false);
     }
-  }, [photo, name, role, builderTitle, format]);
+  }, [photo, name, role, builderTitle, format, crop]);
 
   useEffect(() => {
-    const t = setTimeout(generate, 120);
+    const t = setTimeout(generate, 90);
     return () => clearTimeout(t);
   }, [generate]);
 
   async function onFile(file?: File | null) {
     if (!file) return;
     setError(null);
-    setBusy(true);
+    setUploading(true);
     try {
-      setPhoto(await fileToImage(file));
+      const img = await fileToImage(file);
+      setPhoto(img);
+      setCrop(DEFAULT_CROP);
     } catch {
       setError("That file couldn't be read. Try a JPG or PNG.");
     } finally {
-      setBusy(false);
+      setUploading(false);
     }
+  }
+
+  function switchFormat(f: "card" | "pfp") {
+    setFormat(f);
+    setCrop(DEFAULT_CROP);
   }
 
   function download() {
@@ -125,127 +156,266 @@ function Index() {
     );
   }
 
+  async function copyCaption() {
+    try {
+      await navigator.clipboard.writeText(CAPTION(name, builderTitle));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* ignore */
+    }
+  }
+
+  const ready = !!preview && !busy;
+
   return (
-    <main className="min-h-screen bg-background text-foreground">
-      <div className="mx-auto max-w-6xl px-5 pb-24 pt-8">
-        <header className="flex flex-wrap items-center justify-between gap-3 font-mono text-xs tracking-widest text-primary">
-          <span>2:47 PM STUDIO</span>
-          <span>GOA, INDIA · 28–31 OCT 2026</span>
+    <main className="relative min-h-screen overflow-x-clip bg-background text-foreground">
+      <TropicalScenery />
+
+      {/* marquee */}
+      <div className="w-full -rotate-1 border-y-2 border-primary bg-primary py-2 text-primary-foreground">
+        <div className="hh-marquee-track flex w-max gap-8 whitespace-nowrap font-mono text-xs tracking-widest">
+          {[...MARQUEE_ITEMS, ...MARQUEE_ITEMS, ...MARQUEE_ITEMS].map((item, i) => (
+            <span key={i} className="flex items-center gap-8">
+              {item} <span className="text-accent">✦</span>
+            </span>
+          ))}
+        </div>
+      </div>
+
+      <div className="mx-auto max-w-6xl px-5 pb-32 pt-6 sm:pb-24">
+        <header className="flex flex-wrap items-center justify-between gap-3 pt-4 font-mono text-[11px] tracking-widest text-primary">
+          <span className="inline-flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-secondary" />
+            HACKER HOUSE GOA 2026
+          </span>
+          <span className="rounded-full border-2 border-primary px-3 py-1">
+            OPEN SEASON · 28–31 OCT 2026
+          </span>
         </header>
 
-        <h1 className="mt-6 font-display text-5xl leading-[0.9] tracking-tight text-primary sm:text-7xl">
+        <h1 className="mt-6 select-none font-display text-6xl leading-[0.88] tracking-tight text-primary [text-shadow:6px_6px_0_var(--color-secondary)] sm:text-8xl">
           FRAME IN GOA
         </h1>
-        <p className="mt-3 max-w-xl text-sm text-foreground/80 sm:text-base">
-          Drop a photo, get your Hacker House Goa 2026 graphic. No login, no wait.
+        <p className="mt-5 max-w-xl text-sm text-foreground/80 sm:text-base">
+          Drop a photo, drag it into place, get your Hacker House Goa 2026 graphic. No login, no
+          crop app, no wait.
         </p>
+        <div className="mt-4 flex flex-wrap gap-2 font-mono text-[10px] tracking-widest text-secondary">
+          <span className="rounded-full bg-secondary/10 px-3 py-1">01 SNAP</span>
+          <span className="rounded-full bg-secondary/10 px-3 py-1">02 DETAILS</span>
+          <span className="rounded-full bg-secondary/10 px-3 py-1">03 SHIP IT</span>
+        </div>
 
-        <div className="mt-8 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,520px)]">
+        <div className="mt-10 grid gap-8 lg:grid-cols-[minmax(0,1fr)_minmax(0,480px)] lg:items-start">
           {/* controls */}
-          <section className="space-y-5">
-            <div className="inline-flex rounded-full border-2 border-primary p-1">
-              {(["card", "pfp"] as const).map((f) => (
-                <button
-                  key={f}
-                  onClick={() => setFormat(f)}
-                  className={`rounded-full px-4 py-2 font-mono text-xs tracking-widest transition ${
-                    format === f ? "bg-accent text-accent-foreground" : "text-primary"
-                  }`}
-                >
-                  {f === "card" ? "BUILDER ID CARD" : "PFP FRAME"}
-                </button>
-              ))}
-            </div>
-
-            <label
-              onDragOver={(e) => e.preventDefault()}
-              onDrop={(e) => {
-                e.preventDefault();
-                onFile(e.dataTransfer.files?.[0]);
-              }}
-              className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/60 bg-card px-6 py-10 text-center transition hover:border-accent"
-            >
-              <input
-                ref={inputRef}
-                type="file"
-                accept="image/*,.heic,.heif"
-                className="hidden"
-                onChange={(e) => onFile(e.target.files?.[0])}
-              />
-              <span className="font-display text-2xl text-primary">
-                {photo ? "SWAP PHOTO" : "UPLOAD YOUR PHOTO"}
-              </span>
-              <span className="mt-1 font-mono text-[11px] tracking-widest text-foreground/60">
-                JPG · PNG · HEIC — any crop works
-              </span>
-            </label>
-
-            {format === "card" && (
-              <div className="space-y-4">
-                <Field label="NAME">
-                  <input
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    placeholder="Arjun Shetty"
-                    className="w-full rounded-xl border-2 border-primary/40 bg-card px-4 py-3 outline-none focus:border-accent"
-                  />
-                </Field>
-                <Field label="STACK / ROLE">
-                  <input
-                    value={role}
-                    onChange={(e) => setRole(e.target.value)}
-                    placeholder="Full Stack Developer"
-                    className="w-full rounded-xl border-2 border-primary/40 bg-card px-4 py-3 outline-none focus:border-accent"
-                  />
-                </Field>
-                <p className="font-mono text-xs tracking-widest text-secondary">
-                  BUILDER TITLE → {builderTitle.toUpperCase()}
-                </p>
+          <section className="space-y-8">
+            {/* step 1 */}
+            <StepCard n="01" title="SNAP YOUR PHOTO">
+              <div className="inline-flex rounded-full border-2 border-primary p-1">
+                {(["card", "pfp"] as const).map((f) => (
+                  <button
+                    key={f}
+                    onClick={() => switchFormat(f)}
+                    className={`rounded-full px-4 py-2 font-mono text-xs tracking-widest transition ${
+                      format === f
+                        ? "bg-accent text-accent-foreground"
+                        : "text-primary hover:bg-primary/10"
+                    }`}
+                  >
+                    {f === "card" ? "BUILDER ID CARD" : "PFP FRAME"}
+                  </button>
+                ))}
               </div>
+
+              <div className="mt-4">
+                {photo ? (
+                  <div className="hh-pop-in space-y-3">
+                    <PhotoCropper
+                      image={photo}
+                      crop={crop}
+                      onChange={setCrop}
+                      aspect={format === "card" ? 402 / 442 : 1}
+                      rounded={format === "card" ? "card" : "circle"}
+                    />
+                    <button
+                      onClick={() => inputRef.current?.click()}
+                      className="font-mono text-[11px] tracking-widest text-secondary underline decoration-dotted underline-offset-4"
+                    >
+                      SWAP PHOTO
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    htmlFor="photo-upload"
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      onFile(e.dataTransfer.files?.[0]);
+                    }}
+                    className="flex cursor-pointer flex-col items-center justify-center rounded-2xl border-2 border-dashed border-primary/60 bg-card px-6 py-12 text-center transition hover:border-accent hover:bg-accent/5"
+                  >
+                    <span className="font-display text-2xl text-primary">
+                      {uploading ? "READING…" : "UPLOAD YOUR PHOTO"}
+                    </span>
+                    <span className="mt-1 font-mono text-[11px] tracking-widest text-foreground/60">
+                      JPG · PNG · HEIC — any crop works, drag to reframe after
+                    </span>
+                  </label>
+                )}
+                <input
+                  ref={inputRef}
+                  id="photo-upload"
+                  type="file"
+                  accept="image/*,.heic,.heif"
+                  className="hidden"
+                  onChange={(e) => onFile(e.target.files?.[0])}
+                />
+              </div>
+            </StepCard>
+
+            {/* step 2 */}
+            {format === "card" && (
+              <StepCard n="02" title="ADD YOUR DETAILS">
+                <div className="space-y-4">
+                  <Field label="NAME">
+                    <input
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      placeholder="Arjun Shetty"
+                      maxLength={48}
+                      className="w-full rounded-xl border-2 border-primary/40 bg-card px-4 py-3 outline-none focus:border-accent"
+                    />
+                  </Field>
+                  <Field label="STACK / ROLE">
+                    <input
+                      value={role}
+                      onChange={(e) => setRole(e.target.value)}
+                      placeholder="Full Stack Developer"
+                      maxLength={40}
+                      className="w-full rounded-xl border-2 border-primary/40 bg-card px-4 py-3 outline-none focus:border-accent"
+                    />
+                  </Field>
+                  <div className="flex items-center justify-between gap-3 rounded-xl bg-secondary/10 px-4 py-3">
+                    <p className="font-mono text-xs tracking-widest text-secondary">
+                      TITLE → <span className="text-primary">{builderTitle.toUpperCase()}</span>
+                    </p>
+                    <button
+                      onClick={() => setTitleNonce((n) => n + 1)}
+                      title="Shuffle builder title"
+                      className="shrink-0 rounded-full border-2 border-secondary px-3 py-1 font-mono text-[10px] tracking-widest text-secondary transition hover:bg-secondary hover:text-secondary-foreground"
+                    >
+                      🎲 SHUFFLE
+                    </button>
+                  </div>
+                </div>
+              </StepCard>
             )}
 
-            {error && <p className="text-sm text-destructive">{error}</p>}
+            {error && (
+              <p className="rounded-xl bg-destructive/10 px-4 py-3 text-sm text-destructive">
+                {error}
+              </p>
+            )}
           </section>
 
           {/* preview */}
-          <section className="space-y-4">
-            <div className="rounded-2xl border-2 border-primary/50 bg-card p-3">
-              {preview ? (
-                <img
-                  src={preview}
-                  alt="Your Hacker House Goa 2026 graphic"
-                  className="w-full rounded-xl"
-                />
-              ) : (
-                <div className="flex aspect-[2/3] items-center justify-center rounded-xl bg-primary/10 text-center font-mono text-xs tracking-widest text-foreground/50">
-                  YOUR GRAPHIC APPEARS HERE
-                </div>
-              )}
-            </div>
-            <div className="flex flex-wrap gap-3">
+          <section className="space-y-4 lg:sticky lg:top-6">
+            <StepCard n="03" title="SHIP IT">
+              <div
+                className={`overflow-hidden rounded-2xl border-2 border-primary/50 bg-card p-3 shadow-[8px_8px_0_0_var(--color-accent)] transition-transform ${
+                  ready ? "rotate-0" : ""
+                }`}
+              >
+                {preview ? (
+                  <img
+                    src={preview}
+                    alt="Your Hacker House Goa 2026 graphic"
+                    className="w-full rounded-xl"
+                  />
+                ) : (
+                  <div className="flex aspect-[2/3] items-center justify-center rounded-xl bg-primary/10 text-center font-mono text-xs tracking-widest text-foreground/50">
+                    {photo ? "RENDERING…" : "YOUR GRAPHIC APPEARS HERE"}
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-4 hidden flex-wrap gap-3 sm:flex">
+                <button
+                  disabled={!preview || busy}
+                  onClick={download}
+                  className="flex-1 rounded-xl bg-primary px-5 py-4 font-display text-lg text-primary-foreground transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-40"
+                >
+                  {busy ? "RENDERING…" : "DOWNLOAD PNG"}
+                </button>
+                <button
+                  disabled={!preview || busy}
+                  onClick={share}
+                  className="flex-1 rounded-xl bg-secondary px-5 py-4 font-display text-lg text-secondary-foreground transition hover:-translate-y-0.5 disabled:translate-y-0 disabled:opacity-40"
+                >
+                  SHARE TO X
+                </button>
+              </div>
               <button
                 disabled={!preview || busy}
-                onClick={download}
-                className="flex-1 rounded-xl bg-primary px-5 py-4 font-display text-lg text-primary-foreground disabled:opacity-40"
+                onClick={copyCaption}
+                className="mt-3 hidden w-full rounded-xl border-2 border-primary/40 px-4 py-2 font-mono text-[11px] tracking-widest text-primary transition hover:border-accent disabled:opacity-40 sm:block"
               >
-                {busy ? "RENDERING…" : "DOWNLOAD PNG"}
+                {copied ? "CAPTION COPIED ✓" : "COPY CAPTION + #FrameInGoa"}
               </button>
-              <button
-                disabled={!preview || busy}
-                onClick={share}
-                className="flex-1 rounded-xl bg-secondary px-5 py-4 font-display text-lg text-secondary-foreground disabled:opacity-40"
-              >
-                SHARE TO X
-              </button>
-            </div>
-            <p className="font-mono text-[11px] leading-relaxed tracking-wide text-foreground/60">
-              Sharing on desktop downloads the PNG and opens X with your caption + #FrameInGoa —
-              just drag the image in.
-            </p>
+              <p className="mt-3 font-mono text-[11px] leading-relaxed tracking-wide text-foreground/60">
+                Sharing on mobile attaches the image directly. On desktop it downloads the PNG and
+                opens X with your caption — just drag the image in.
+              </p>
+            </StepCard>
           </section>
         </div>
       </div>
+
+      {/* mobile sticky action bar */}
+      <div className="fixed inset-x-0 bottom-0 z-20 border-t-2 border-primary bg-card/95 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3 backdrop-blur sm:hidden">
+        <div className="flex gap-3">
+          <button
+            disabled={!preview || busy}
+            onClick={download}
+            className="flex-1 rounded-xl bg-primary px-4 py-3 font-display text-base text-primary-foreground disabled:opacity-40"
+          >
+            {busy ? "…" : "DOWNLOAD"}
+          </button>
+          <button
+            disabled={!preview || busy}
+            onClick={share}
+            className="flex-1 rounded-xl bg-secondary px-4 py-3 font-display text-base text-secondary-foreground disabled:opacity-40"
+          >
+            SHARE TO X
+          </button>
+        </div>
+      </div>
+
+      <footer className="mx-auto max-w-6xl px-5 pb-8 pt-4 font-mono text-[11px] tracking-widest text-foreground/50">
+        2:47 PM STUDIO × HACKER HOUSE GOA 2026 — Build. Code. Repeat.
+      </footer>
     </main>
+  );
+}
+
+function StepCard({
+  n,
+  title,
+  children,
+}: {
+  n: string;
+  title: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border-2 border-primary/30 bg-card/60 p-5 backdrop-blur-sm">
+      <div className="mb-4 flex items-center gap-3">
+        <span className="font-display text-sm text-secondary">{n}</span>
+        <h2 className="font-display text-xl tracking-tight text-primary">{title}</h2>
+      </div>
+      {children}
+    </div>
   );
 }
 

@@ -1,80 +1,35 @@
-# Goa Frame & ID
+# Frame in Goa
 
-What to build
+A web tool for Hacker House Goa 2026 — upload a photo, get back a branded HH Goa 2026 graphic in seconds, ready to download and share on X.
 
-A web tool where someone uploads a photo and instantly gets back a branded HH Goa 2026
+Two formats:
 
-graphic, ready to download and share on X.
+- **PFP Frame** — wraps your photo in a circular HH Goa frame, ready as an X profile picture.
+- **Builder ID Card** — your photo + name + stack/role + a generated "builder title", laid out like an event badge.
 
-Pick one of the two formats below (or build both if you want):
+No login, no signup gate. Upload → drag to reframe → fill in a couple of fields → download or share.
 
-Format A: PFP Frame/Overlay
+## Features
 
-A frame that sits around the uploaded photo, turning it into a ready-to-use X profile picture. The
-
-uploaded photo stays front and center, the frame just wraps it in HH Goa branding.
-
-Format B: Builder ID Card
-
-A card with the uploaded photo + name + a couple of fun fields (your stack/role, a generated
-
-'builder title') laid out like an event badge, designed to be posted as an image, not printed.
-
-Required flow
-
-1. User uploads a photo (support common formats - JPG, PNG, HEIC from iPhone). 2.
-
-(Format B only) User fills in a couple of quick fields: name, stack/role, etc. 3. Tool generates
-
-the final graphic; should feel near-instant.
-
-4. User can download the image.
-
-5. User can hit Share to X: this should open a pre-filled tweet (image attached or a link whose
-
-preview shows the actual graphic) with a caption already written in.
-
-No login wall. No signup gate before showing the result. It needs to work in one pass, start to
-
-finish.
-
-Requirements
-
-• Speed: Upload to finished result should be fast—a few seconds, not a loading screen. • Handles
-
-real photos: Portrait, landscape, off-center crops, different aspect ratios; don't assume users will
-
-crop first.
-
-• On-brand: It should be unmistakably this event, not a generic badge with a logo pasted on.
-
-• Downloadable output: A real image file, not something that only renders on-screen. • Working
-
-share flow: Pre-filled caption + hashtag #FrameInGoa. If you share via link rather than direct
-
-image attach, ensure the link preview (OG image) shows the generated graphic, not a
-
-blank/default thumbnail.
-
-• Mobile-friendly: Most people will use this from their phone., use the logo and the theme given to generate the card like i provided in the image
-
-This project was built with [Lovable](https://lovable.dev).
-
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/f87e58ba-2bc4-4e27-9818-089ff6678773).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+- Drag-to-reframe, pinch-to-zoom photo cropper — handles portrait, landscape, and off-center photos without requiring a pre-crop
+- HEIC/HEIF support (auto-converted client-side) alongside JPG/PNG
+- Instant canvas-based rendering, no server round-trip
+- Download as PNG, or share straight to X with a pre-filled caption and `#FrameInGoa`
+- Mobile-friendly, with a sticky download/share bar on small screens
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+Requires Node.js and npm.
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
+npm install
 npm run dev
 ```
+
+## Build
+
+```sh
+npm run build
+```
+
+Builds a deployable output for Vercel (Nitro's `vercel` preset).
