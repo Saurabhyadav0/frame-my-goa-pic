@@ -379,14 +379,14 @@ export async function renderPfp(
   photo: HTMLImageElement,
   crop: Crop = DEFAULT_CROP,
 ): Promise<HTMLCanvasElement> {
+  const [, beach] = await preloadBrandArt();
   const S = 1024;
   const canvas = document.createElement("canvas");
   canvas.width = S;
   canvas.height = S;
   const ctx = canvas.getContext("2d")!;
 
-  ctx.fillStyle = GREEN;
-  ctx.fillRect(0, 0, S, S);
+  drawBeachBackdrop(ctx, beach, S, S);
   ctx.save();
   ctx.beginPath();
   ctx.arc(S / 2, S / 2, S / 2 - 44, 0, Math.PI * 2);
