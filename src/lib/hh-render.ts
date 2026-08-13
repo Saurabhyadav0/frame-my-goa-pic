@@ -116,6 +116,13 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   ctx.fillStyle = GREEN;
   ctx.fillRect(0, 0, W, H);
 
+  // Full-bleed beach background
+  drawCover(ctx, bg, 0, 0, W, H, 0.5);
+
+  // Green scrim so text stays legible
+  ctx.fillStyle = "rgba(6,42,24,0.62)";
+  ctx.fillRect(0, 0, W, H);
+
   // Header wordmark banner
   const headerH = Math.round((W / logo.width) * logo.height);
   ctx.drawImage(logo, 0, 0, W, headerH);
@@ -123,15 +130,6 @@ export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
   // thin yellow rule
   ctx.fillStyle = YELLOW;
   ctx.fillRect(56, headerH + 10, W - 112, 4);
-
-  // Beach illustration band (bottom)
-  const beachH = 420;
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(0, H - beachH, W, beachH);
-  ctx.clip();
-  drawCover(ctx, beach, 0, H - beachH, W, beachH, 0.72);
-  ctx.restore();
 
   // --- Pink "BUILDER ID CARD" tag
   const tagY = 400;
