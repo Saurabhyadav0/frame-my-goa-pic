@@ -101,12 +101,11 @@ export type CardInput = {
   photo: HTMLImageElement;
   name: string;
   role: string;
-  stack: string[];
   builderTitle: string;
 };
 
 export async function renderCard(input: CardInput): Promise<HTMLCanvasElement> {
-  const [logo, beach] = await preloadBrandArt();
+  const [logo, bg] = await preloadBrandArt();
   const W = 1080;
   const H = 1620;
   const canvas = document.createElement("canvas");
