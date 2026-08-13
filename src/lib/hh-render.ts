@@ -215,6 +215,25 @@ function drawWordmark(ctx: CanvasRenderingContext2D, wordmark: HTMLImageElement,
   return headerH;
 }
 
+// Crop just the big "HACKER [गोवा] HOUSE" lockup out of the wordmark banner
+// (excludes the "2:47 PM STUDIO" / "CHECK HYPE · APPLY" corner labels), sized
+// to a target width and centered at (cx, topY).
+function drawWordmarkCrop(
+  ctx: CanvasRenderingContext2D,
+  wordmark: HTMLImageElement,
+  cx: number,
+  topY: number,
+  dw: number,
+) {
+  const sx = 0;
+  const sy = wordmark.height * 0.24;
+  const sw = wordmark.width;
+  const sh = wordmark.height * 0.62;
+  const dh = dw * (sh / sw);
+  ctx.drawImage(wordmark, sx, sy, sw, sh, cx - dw / 2, topY, dw, dh);
+  return dh;
+}
+
 export type CardInput = {
   photo: HTMLImageElement;
   name: string;
@@ -438,7 +457,7 @@ export async function renderPfp(
   crop: Crop = DEFAULT_CROP,
   variant: PfpVariant = "sunset",
 ): Promise<HTMLCanvasElement> {
-  const [, beach] = await preloadBrandArt();
+  const [wordmark, beach] = await preloadBrandArt();
   const S = 1024;
   const canvas = document.createElement("canvas");
   canvas.width = S;
@@ -507,13 +526,7 @@ export async function renderPfp(
     ctx.beginPath();
     ctx.arc(cx, cy, photoR, 0, Math.PI * 2);
     ctx.clip();
-    ctx.textAlign = "center";
-    ctx.fillStyle = CREAM;
-    ctx.font = "700 54px 'Archivo Black', Impact, sans-serif";
-    ctx.fillText("HACKER HOUSE", cx, S - 224);
-    ctx.fillStyle = YELLOW;
-    ctx.font = "700 30px 'Archivo Black', Impact, sans-serif";
-    ctx.fillText("GOA 2026", cx, S - 182);
+    drawWordmarkCrop(ctx, wordmark, cx, S - 280, 460);
     ctx.restore();
 
     ctx.save();

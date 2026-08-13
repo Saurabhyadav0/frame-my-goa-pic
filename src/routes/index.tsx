@@ -148,7 +148,7 @@ function Index() {
   async function share() {
     if (!blobRef.current) return;
     const file = new File([blobRef.current], "hh-goa-2026.png", { type: "image/png" });
-    const text = CAPTION(name, builderTitle);
+    const text = CAPTION;
     const nav = navigator as Navigator & { canShare?: (d: ShareData) => boolean };
     if (nav.canShare?.({ files: [file] })) {
       try {
@@ -168,7 +168,7 @@ function Index() {
 
   async function copyCaption() {
     try {
-      await navigator.clipboard.writeText(CAPTION(name, builderTitle));
+      await navigator.clipboard.writeText(CAPTION);
       setCopied(true);
       setTimeout(() => setCopied(false), 1600);
     } catch {

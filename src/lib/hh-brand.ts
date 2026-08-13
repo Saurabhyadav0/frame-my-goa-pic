@@ -28,5 +28,13 @@ export function titleFor(seed: string) {
   return TITLES[h % TITLES.length] as string;
 }
 
-export const CAPTION = (name: string, title: string) =>
-  `I'm ${name || "a builder"} — ${title} at Hacker House Goa 2026 🌴\nBuild. Code. Repeat.\n\n#FrameInGoa`;
+export const CAPTION = `Ready to build, ship, and make waves at Hacker House Goa 2026! 🌴🚀
+
+Just claimed my official Hacker House Goa 2026 Builder Pass! 🌴
+
+Who else is building in paradise this October? 🌴
+
+Get your pass here 👇
+https://frame-my-goa-pic.vercel.app
+
+#FrameInGoa #HHGoa2026`;
