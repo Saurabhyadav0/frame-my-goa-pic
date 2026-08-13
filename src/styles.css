@@ -232,13 +232,62 @@
   animation: hh-sun-pulse 6s ease-in-out infinite;
 }
 
+@keyframes hh-sun-halo-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.75;
+    transform: scale(1.12);
+  }
+}
+
+.hh-sun-halo {
+  animation: hh-sun-halo-pulse 6s ease-in-out infinite;
+}
+
+@keyframes hh-sun-rays-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hh-sun-rays {
+  animation: hh-sun-rays-spin 40s linear infinite;
+  transform-origin: center;
+}
+
+@keyframes hh-twinkle {
+  0%,
+  100% {
+    opacity: 0.15;
+    transform: scale(0.7) rotate(0deg);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.15) rotate(20deg);
+  }
+}
+
+.hh-sparkle {
+  animation: hh-twinkle 3.2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .hh-marquee-track,
   .hh-blob-a,
   .hh-blob-b,
   .hh-pop-in,
   .hh-frond,
-  .hh-sun {
+  .hh-sun,
+  .hh-sun-halo,
+  .hh-sun-rays,
+  .hh-sparkle {
     animation: none;
   }
 }

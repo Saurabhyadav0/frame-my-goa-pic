@@ -1,3 +1,42 @@
+// Small 4-point sparkle glyph, twinkling with a staggered delay.
+const SPARKLES: { top: string; left: string; size: number; delay: string; color: string }[] = [
+  { top: "9%", left: "18%", size: 16, delay: "0s", color: "var(--color-accent)" },
+  { top: "16%", left: "63%", size: 11, delay: "0.7s", color: "var(--color-secondary)" },
+  { top: "6%", left: "42%", size: 9, delay: "1.4s", color: "var(--color-primary)" },
+  { top: "34%", left: "8%", size: 13, delay: "1.1s", color: "var(--color-secondary)" },
+  { top: "46%", left: "92%", size: 15, delay: "0.3s", color: "var(--color-accent)" },
+  { top: "58%", left: "35%", size: 10, delay: "1.7s", color: "var(--color-primary)" },
+  { top: "68%", left: "78%", size: 12, delay: "0.5s", color: "var(--color-secondary)" },
+  { top: "80%", left: "12%", size: 14, delay: "1s", color: "var(--color-accent)" },
+  { top: "27%", left: "88%", size: 9, delay: "2s", color: "var(--color-primary)" },
+  { top: "90%", left: "60%", size: 11, delay: "0.9s", color: "var(--color-secondary)" },
+];
+
+function Sparkle({
+  top,
+  left,
+  size,
+  delay,
+  color,
+}: {
+  top: string;
+  left: string;
+  size: number;
+  delay: string;
+  color: string;
+}) {
+  return (
+    <svg
+      className="hh-sparkle absolute"
+      style={{ top, left, width: size, height: size, animationDelay: delay, color }}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+    >
+      <path d="M12 0 L14.2 9.8 L24 12 L14.2 14.2 L12 24 L9.8 14.2 L0 12 L9.8 9.8 Z" />
+    </svg>
+  );
+}
+
 // Decorative cartoon beach scenery for the page chrome — intentionally a different
 // visual language from the flyer-silhouette palms drawn onto the generated card/PFP.
 export function TropicalScenery() {
@@ -13,14 +52,56 @@ export function TropicalScenery() {
         }}
       />
 
-      {/* sunrise, top right */}
-      <svg
-        className="hh-sun absolute -right-10 -top-16 h-56 w-56 opacity-90 sm:h-72 sm:w-72"
-        viewBox="0 0 200 200"
-      >
-        <circle cx="100" cy="100" r="70" fill="var(--color-accent)" />
-        <circle cx="100" cy="100" r="70" fill="none" stroke="var(--color-secondary)" strokeWidth="4" opacity="0.5" />
-      </svg>
+      {SPARKLES.map((s, i) => (
+        <Sparkle key={i} {...s} />
+      ))}
+
+      {/* sunrise, top right — glossy gradient + glow halo + highlight + rays */}
+      <div className="absolute -right-16 -top-20 h-64 w-64 sm:h-80 sm:w-80">
+        <div className="hh-sun-halo absolute inset-0 rounded-full bg-accent/50 blur-3xl" />
+        <svg className="hh-sun-rays absolute inset-0 h-full w-full opacity-70" viewBox="0 0 200 200">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <rect
+              key={i}
+              x="98.5"
+              y="6"
+              width="3"
+              height="20"
+              rx="1.5"
+              fill="var(--color-accent)"
+              transform={`rotate(${i * 30} 100 100)`}
+            />
+          ))}
+        </svg>
+        <svg className="hh-sun relative h-full w-full" viewBox="0 0 200 200">
+          <defs>
+            <radialGradient id="hhSunGrad" cx="38%" cy="32%" r="75%">
+              <stop offset="0%" stopColor="#fffbe0" />
+              <stop offset="45%" stopColor="var(--color-accent)" />
+              <stop offset="100%" stopColor="#e2b400" />
+            </radialGradient>
+          </defs>
+          <circle cx="100" cy="100" r="70" fill="url(#hhSunGrad)" />
+          <circle
+            cx="100"
+            cy="100"
+            r="70"
+            fill="none"
+            stroke="var(--color-secondary)"
+            strokeWidth="4"
+            opacity="0.5"
+          />
+          <ellipse
+            cx="76"
+            cy="70"
+            rx="28"
+            ry="15"
+            fill="#ffffff"
+            opacity="0.4"
+            transform="rotate(-25 76 70)"
+          />
+        </svg>
+      </div>
 
       {/* palm tree, bottom left, swaying */}
       <svg
